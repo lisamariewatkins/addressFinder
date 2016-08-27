@@ -213,13 +213,74 @@
 /***/ function(module, exports) {
 
 	// shim for using process in browser
-
 	var process = module.exports = {};
 
-	// cached from whatever global is present so that test runners that stub it don't break things.
-	var cachedSetTimeout = setTimeout;
-	var cachedClearTimeout = clearTimeout;
+	// cached from whatever global is present so that test runners that stub it
+	// don't break things.  But we need to wrap it in a try catch in case it is
+	// wrapped in strict mode code which doesn't define any globals.  It's inside a
+	// function because try/catches deoptimize in certain engines.
 
+	var cachedSetTimeout;
+	var cachedClearTimeout;
+
+	(function () {
+	    try {
+	        cachedSetTimeout = setTimeout;
+	    } catch (e) {
+	        cachedSetTimeout = function () {
+	            throw new Error('setTimeout is not defined');
+	        }
+	    }
+	    try {
+	        cachedClearTimeout = clearTimeout;
+	    } catch (e) {
+	        cachedClearTimeout = function () {
+	            throw new Error('clearTimeout is not defined');
+	        }
+	    }
+	} ())
+	function runTimeout(fun) {
+	    if (cachedSetTimeout === setTimeout) {
+	        //normal enviroments in sane situations
+	        return setTimeout(fun, 0);
+	    }
+	    try {
+	        // when when somebody has screwed with setTimeout but no I.E. maddness
+	        return cachedSetTimeout(fun, 0);
+	    } catch(e){
+	        try {
+	            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+	            return cachedSetTimeout.call(null, fun, 0);
+	        } catch(e){
+	            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+	            return cachedSetTimeout.call(this, fun, 0);
+	        }
+	    }
+
+
+	}
+	function runClearTimeout(marker) {
+	    if (cachedClearTimeout === clearTimeout) {
+	        //normal enviroments in sane situations
+	        return clearTimeout(marker);
+	    }
+	    try {
+	        // when when somebody has screwed with setTimeout but no I.E. maddness
+	        return cachedClearTimeout(marker);
+	    } catch (e){
+	        try {
+	            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+	            return cachedClearTimeout.call(null, marker);
+	        } catch (e){
+	            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+	            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+	            return cachedClearTimeout.call(this, marker);
+	        }
+	    }
+
+
+
+	}
 	var queue = [];
 	var draining = false;
 	var currentQueue;
@@ -244,7 +305,7 @@
 	    if (draining) {
 	        return;
 	    }
-	    var timeout = cachedSetTimeout(cleanUpNextTick);
+	    var timeout = runTimeout(cleanUpNextTick);
 	    draining = true;
 
 	    var len = queue.length;
@@ -261,7 +322,7 @@
 	    }
 	    currentQueue = null;
 	    draining = false;
-	    cachedClearTimeout(timeout);
+	    runClearTimeout(timeout);
 	}
 
 	process.nextTick = function (fun) {
@@ -273,7 +334,7 @@
 	    }
 	    queue.push(new Item(fun, args));
 	    if (queue.length === 1 && !draining) {
-	        cachedSetTimeout(drainQueue, 0);
+	        runTimeout(drainQueue);
 	    }
 	};
 
@@ -19675,7 +19736,7 @@
 
 	'use strict';
 
-	// Include React
+	// Include React 
 	var React = __webpack_require__(1);
 
 	// Here we include all of the sub-components
@@ -19685,7 +19746,7 @@
 	// Helper Function
 	var helpers = __webpack_require__(162);
 
-	// This is the main component.
+	// This is the main component. 
 	var Main = React.createClass({
 		displayName: 'Main',
 
@@ -19698,13 +19759,14 @@
 			};
 		},
 
+		// We use this function to allow children to update the parent with searchTerms.
 		setTerm: function setTerm(term) {
 			this.setState({
 				searchTerm: term
 			});
 		},
 
-		// If the
+		// If the component updates we'll run this code
 		componentDidUpdate: function componentDidUpdate(prevProps, prevState) {
 
 			if (prevState.searchTerm != this.state.searchTerm) {
@@ -19720,7 +19782,7 @@
 						});
 					}
 
-					// This code is necessary to bind the keyword "this" when we say this.setState
+					// This code is necessary to bind the keyword "this" when we say this.setState 
 					// to actually mean the component itself and not the runQuery function.
 				}.bind(this));
 			}
@@ -19777,10 +19839,10 @@
 
 	"use strict";
 
-	// Include React
+	// Include React 
 	var React = __webpack_require__(1);
 
-	// This is the main component. It includes the banner and form element.
+	// Component creation
 	var Form = React.createClass({
 		displayName: "Form",
 
@@ -19792,22 +19854,23 @@
 			};
 		},
 
-		// This function will respond to the user input
+		// This function will respond to the user input 
 		handleChange: function handleChange(event) {
 
 			// Here we create syntax to capture any change in text to the query terms (pre-search).
-			// See this Stack Overflow answer for more details:
+			// See this Stack Overflow answer for more details: 
 			// http://stackoverflow.com/questions/21029999/react-js-identifying-different-inputs-with-one-onchange-handler
 			var newState = {};
 			newState[event.target.id] = event.target.value;
 			this.setState(newState);
 		},
 
-		// When a user submits...
+		// When a user submits... 
 		handleClick: function handleClick() {
 
 			console.log("CLICK");
 			console.log(this.state.term);
+
 			// Set the parent to have the search term
 			this.props.setTerm(this.state.term);
 		},
@@ -19859,7 +19922,7 @@
 		}
 	});
 
-	// Export the componen back for use in other files
+	// Export the component back for use in other files
 	module.exports = Form;
 
 /***/ },
@@ -19868,10 +19931,10 @@
 
 	"use strict";
 
-	// Include React
+	// Include React 
 	var React = __webpack_require__(1);
 
-	// This is the main component. It includes the banner and Results element.
+	// Component creation
 	var Results = React.createClass({
 		displayName: "Results",
 
@@ -19909,7 +19972,7 @@
 		}
 	});
 
-	// Export the componen back for use in other files
+	// Export the component back for use in other files
 	module.exports = Results;
 
 /***/ },
