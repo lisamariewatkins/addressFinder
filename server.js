@@ -5,7 +5,7 @@ var logger = require('morgan');
 var mongoose = require('mongoose');
 
 //Require Click Schema
-var Click = require('./models/click.js');
+var Address = require('./models/address.js');
 
 // Create Instance of Express
 var app = express();
@@ -24,7 +24,8 @@ app.use(express.static('./public'));
 
 // MongoDB Configuration configuration (Change this URL to your own DB)
 var dbURI = 'mongodb://localhost/addressdb';
-mongoose.connect('dbURI');
+
+mongoose.connect(dbURI);
 var db = mongoose.connection;
 
 db.on('error', function (err) {
